@@ -14,3 +14,25 @@ $('exitCinema').onclick=()=>setCinema(false);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setCinema(false)});
 video.addEventListener('error',()=>message('Video oynatılamadı. Kaynak adresi, format veya site erişim izni engel olabilir.'));
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// Yalnızca tarayıcı yeteneklerini test eder; ses akışı yakalamaz.
+$('audioTest').onclick=()=>{
+ const v=video;
+ const isPlaying=!!(v.currentSrc && !v.paused && v.readyState>=2);
+ const capture=typeof v.captureStream==='function'||typeof v.webkitCaptureStream==='function';
+ const speech=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
+ const audio=!!(window.AudioContext||window.webkitAudioContext);
+ const source=v.currentSrc||'';
+ const local=source.startsWith('blob:');
+ const sameOrigin=(()=>{try{return new URL(source).origin===location.origin}catch{return false}})();
+ const out=[
+  'Video oynuyor: '+(isPlaying?'Evet':'Hayır'),
+  'Video kaynağı: '+(local?'Yerel dosya':sameOrigin?'Aynı site':source?'Başka site':'Yok'),
+  'Video captureStream API: '+(capture?'Var':'Yok'),
+  'Web Audio API: '+(audio?'Var':'Yok'),
+  'SpeechRecognition API: '+(speech?'Var':'Yok'),
+  'Sonuç: Bu test API desteğini ölçer; sesin gerçekten okunabildiğini veya canlı çevirinin çalışacağını kanıtlamaz.'
+ ];
+ $('audioResult').textContent=out.join('\n');
+ $('audioResult').style.whiteSpace='pre-line';
+};
