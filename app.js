@@ -8,6 +8,9 @@ $('file').onchange=e=>{let f=e.target.files[0];if(!f)return;if(blobUrl)URL.revok
 $('srt').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{cues=parseSubs(await f.text());manual=false;subtitle.textContent='';message(cues.length+' altyazı satırı yüklendi.')}catch{message('Altyazı okunamadı.')}};
 $('show').onclick=()=>{manual=true;subtitle.textContent=$('manual').value;message('Örnek metin gösteriliyor.')};
 $('sample').onclick=()=>{manual=true;subtitle.textContent='Merhaba! Türkçe altyazı burada görünecek.'};
-$('fullscreen').onclick=async()=>{let el=$('stage');try{if(document.fullscreenElement){await document.exitFullscreen();return}if(el.requestFullscreen){await el.requestFullscreen();return}message('Bu Safari sürümünde sayfa öğesi tam ekranı desteklenmiyor. Telefonu yatay çevirip Safari araç çubuklarını gizlemeyi dene.')}catch{message('Tam ekran isteği Safari tarafından engellendi.')}};
+function setCinema(on){document.body.classList.toggle('cinema',on);$('fullscreen').textContent=on?'Sinema Modundan Çık':'Sinema Modu';message(on?'Sinema Modu açık. Yerel video tam ekran düğmesine basmayın.':'Sinema Modu kapalı.')} 
+$('fullscreen').onclick=()=>setCinema(!document.body.classList.contains('cinema'));
+$('exitCinema').onclick=()=>setCinema(false);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')setCinema(false)});
 video.addEventListener('error',()=>message('Video oynatılamadı. Kaynak adresi, format veya site erişim izni engel olabilir.'));
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
