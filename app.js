@@ -3,8 +3,46 @@ function message(s){status.textContent=s}
 function parseTime(s){let m=s.trim().match(/(?:(\d+):)?(\d+):(\d+)[.,](\d+)/);if(!m)return NaN;return (+m[1]||0)*3600+(+m[2])*60+(+m[3])+(+m[4].padEnd(3,'0').slice(0,3))/1000}
 function parseSubs(s){return s.replace(/\r/g,'').replace(/^WEBVTT[^\n]*\n/,'').split(/\n\s*\n/).flatMap(block=>{let lines=block.trim().split('\n'),i=lines.findIndex(x=>x.includes('-->'));if(i<0)return[];let [a,b]=lines[i].split('-->');let start=parseTime(a),end=parseTime(b);return Number.isFinite(start)&&Number.isFinite(end)?[{start,end,text:lines.slice(i+1).join('\n').replace(/<[^>]*>/g,'')}]:[]}).sort((a,b)=>a.start-b.start)}
 video.addEventListener('timeupdate',()=>{if(manual)return;let t=video.currentTime,c=cues.find(x=>t>=x.start&&t<x.end);subtitle.textContent=c?c.text:''});
-$('load').onclick=()=>{let url=$('url').value.trim();if(!/^https:\/\//i.test(url)){message('HTTPS ile başlayan doğrudan video bağlantısı gir.');return}if(blobUrl){URL.revokeObjectURL(blobUrl);blobUrl=null}video.src=url;video.load();message('Video yükleniyor. Site izin vermiyorsa oynatılamaz.')};
-$('file').onchange=e=>{let f=e.target.files[0];if(!f)return;if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=URL.createObjectURL(f);video.src=blobUrl;video.load();message('Yerel video seçildi.')};
+// Bağlantı sınıflandırması: sitelerin içeriğini uzaktan taramaz, yalnızca URL'yi inceler.
+function classifySource(raw){
+ let u;try{u=new URL(raw)}catch{return {type:'invalid',detail:'Geçerli bir HTTPS bağlantısı gir.'}};
+ if(u.protocol!=='https:')return {type:'invalid',detail:'Yalnızca HTTPS bağlantıları kabul edilir.'};
+ const path=u.pathname.toLowerCase();
+ if(/\.m3u8$/i.test(path))return {type:'hls',detail:'HLS (.m3u8) akışı. iPhone Safari yerel HLS oynatmayı destekler; sunucu izinleri yine geçerlidir.'};
+ if(/\.(mp4|m4v|mov|webm|ogv)$/i.test(path))return {type:'media',detail:'Doğrudan medya bağlantısı. Formatın ve sunucunun desteklenmesi gerekir.'};
+ return {type:'page',detail:'Bu adres bir web sayfası veya türü belirsiz bağlantı. Dizi sayfasını video dosyası gibi oynatamayız. Uzantısız gerçek medya adresleri de olabilir.'};
+}
+let activeSourceKind='';
+$('load').onclick=()=>{
+ const raw=$('url').value.trim(),result=classifySource(raw);
+ $('sourceType').textContent=result.detail;
+ $('openPage').style.display=result.type==='page'?'inline-block':'none';
+ if(result.type==='invalid'){message(result.detail);logEvent('Gecersiz baglanti',result.detail);return;}
+ if(result.type==='page'){
+  message('Bu bir dizi sayfası olabilir. Safari’de açabilirsin; doğrudan video kaynağı bilinmiyor.');
+  logEvent('Sayfa adresi algilandi',new URL(raw).hostname);return;
+ }
+ if(blobUrl){URL.revokeObjectURL(blobUrl);blobUrl=null}
+ if(audioCtx)stopMeter();
+ activeSourceKind=result.type;
+ // crossorigin=anonymous başka sunuculardaki CORS'suz videoların oynatılmasını engelleyebilir.
+ // Bu nedenle oynatma önceliklidir; CORS yoksa ses analizi mümkün olmayabilir.
+ video.removeAttribute('crossorigin');
+ video.src=raw;video.load();
+ message('Video yükleniyor… Oynatma için video üzerindeki ▶ düğmesine dokun.');
+ logEvent('Video baglantisi yuklendi',result.type+' | '+new URL(raw).hostname);
+};
+$('openPage').onclick=()=>{const raw=$('url').value.trim();if(classifySource(raw).type==='page')window.open(raw,'_blank','noopener,noreferrer')};
+video.addEventListener('loadedmetadata',()=>{message('Video bilgisi alındı. Oynat düğmesine basabilirsin.');logEvent('Video metadata',String(video.videoWidth)+'x'+video.videoHeight)});
+video.addEventListener('playing',()=>logEvent('Video oynuyor'));
+video.addEventListener('stalled',()=>logEvent('Video veri bekliyor'));
+video.addEventListener('error',()=>{
+ const codes={1:'Oynatma iptal edildi',2:'Ağ veya sunucu hatası',3:'Video çözümlenemedi',4:'Biçim desteklenmiyor ya da kaynak erişilemiyor'};
+ const code=video.error?.code||0,description=codes[code]||'Bilinmeyen hata';
+ message('Video açılamadı: '+description+' (kod '+code+').');
+ logEvent('Video oynatma hatasi','kod '+code+' | '+description+' | '+activeSourceKind);
+});
+$('file').onchange=e=>{let f=e.target.files[0];if(!f)return;if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=URL.createObjectURL(f);video.removeAttribute('crossorigin');video.src=blobUrl;video.load();message('Yerel video seçildi.')};
 $('srt').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{cues=parseSubs(await f.text());manual=false;subtitle.textContent='';message(cues.length+' altyazı satırı yüklendi.')}catch{message('Altyazı okunamadı.')}};
 $('show').onclick=()=>{manual=true;subtitle.textContent=$('manual').value;message('Örnek metin gösteriliyor.')};
 $('sample').onclick=()=>{manual=true;subtitle.textContent='Merhaba! Türkçe altyazı burada görünecek.'};
@@ -12,7 +50,7 @@ function setCinema(on){document.body.classList.toggle('cinema',on);$('fullscreen
 $('fullscreen').onclick=()=>setCinema(!document.body.classList.contains('cinema'));
 $('exitCinema').onclick=()=>setCinema(false);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setCinema(false)});
-video.addEventListener('error',()=>message('Video oynatılamadı. Kaynak adresi, format veya site erişim izni engel olabilir.'));
+
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 
 // Yalnızca tarayıcı yeteneklerini test eder; ses akışı yakalamaz.

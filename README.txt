@@ -1,4 +1,1 @@
-DiziCevir tek paket
-Dosyalari mevcut GitHub dizicevir deposuna kopyalayin.
-Bu surum: sinema modu, video ses olcumu, mikrofonla Ingilizce konusma tanima, varsa tarayici yerlesik Translator API ile Turkce ceviri, tani kaydi.
-Sinirlar: Safari Translator API sunmayabilir. Mikrofon diger sekmelerin sesine erisemez. CORS kisitlamalari asilmiyor. Canli ceviri garanti degildir.
+DiziCevir - Oynatici v2\n\nMP4 ve iPhone Safari HLS (.m3u8) destegi, URL turu denetimi, sinema modu, hata kaydi.\nDizi sayfalarini otomatik video kaynagina donusturmez. Ses yakalama/ceviri garanti edilmez.\n\nKurulum: 6 dosyayi mevcut dizicevir klasorune kopyala; git add .; git commit -m "Oynatici kaynak destegi"; git push origin main\n
