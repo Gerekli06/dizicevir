@@ -67,7 +67,7 @@ $('inspectPage').onclick=async()=>{
  }catch(err){setCandidates([]);message('Sayfa taranamadı: '+err.message+'. CORS, yönlendirme veya ağ engeli olabilir.');logEvent('Tarama engellendi',err.name+': '+err.message)}
 };
 $('embedPage').onclick=()=>{const result=classifySource(lastUrl);if(!['page','amp'].includes(result.type))return;$('embeddedPage').src=lastUrl;$('embeddedWrapper').style.display='block';message('Gömme denendi. Site iframe engeli koymuşsa görüntü açılmaz; bu hata JavaScript tarafından her zaman algılanamaz.');logEvent('Iframe denemesi',new URL(lastUrl).hostname)};
-$('closeEmbed').onclick=()=>{$('embeddedPage').src='about:blank';$('embeddedWrapper').style.display='none'};
+$('closeEmbed').onclick=()=>{$('embeddedPage').src='about:blank';$('embeddedWrapper').style.display='none';$('embeddedWrapper').classList.remove('embed-cinema');overlayPause()};
 video.addEventListener('loadedmetadata',()=>{message('Video bilgisi alındı. Oynat düğmesine basabilirsin.');logEvent('Video metadata',String(video.videoWidth)+'x'+video.videoHeight)});
 video.addEventListener('playing',()=>logEvent('Video oynuyor'));
 video.addEventListener('stalled',()=>logEvent('Video veri bekliyor'));
@@ -177,3 +177,43 @@ $('stopSpeech').onclick=()=>{shouldListen=false;if(recognition){try{recognition.
 $('copyLog').onclick=async()=>{const content=logs.join('\n');try{await navigator.clipboard.writeText(content);message('Tanılama kaydı kopyalandı.')}catch{message('Kopyalama engellendi; aşağıdaki tanılama metnini seçip kopyalayın.')}};
 window.addEventListener('unhandledrejection',e=>logEvent('Promise hatasi',String(e.reason)));
 window.addEventListener('error',e=>logEvent('JS hatasi',e.message));
+
+// V4: Gömülü iframe üzerine yerel altyazı; iframe'in sesine/zamanına erişim iddiası yoktur.
+let overlaySeconds=0,overlayRunning=false,overlayLast=0,overlayRAF=0;
+const embedOverlay=$('embedOverlay');
+function clockFormat(n){const t=Math.max(0,Math.floor(n));return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}
+function updateOverlay(){
+ const cue=cues.find(x=>overlaySeconds>=x.start&&overlaySeconds<x.end);
+ const content=cue?cue.text:(manual?subtitle.textContent:'');
+ embedOverlay.textContent=content;
+ $('overlayClock').textContent='Altyazı saati: '+clockFormat(overlaySeconds)+(overlayRunning?' · çalışıyor':' · duraklatıldı');
+}
+function overlayTick(now){
+ if(!overlayRunning)return;
+ if(overlayLast)overlaySeconds+=(now-overlayLast)/1000;
+ overlayLast=now;updateOverlay();overlayRAF=requestAnimationFrame(overlayTick);
+}
+function overlayPause(){overlayRunning=false;overlayLast=0;if(overlayRAF)cancelAnimationFrame(overlayRAF);overlayRAF=0;updateOverlay()}
+$('overlayStart').onclick=()=>{if(overlayRunning)return;overlayRunning=true;overlayLast=0;overlayRAF=requestAnimationFrame(overlayTick);logEvent('Gomulu altyazi basladi')};
+$('overlayPause').onclick=()=>{overlayPause();logEvent('Gomulu altyazi duraklatildi')};
+$('overlayBack').onclick=()=>{overlaySeconds=Math.max(0,overlaySeconds-2);updateOverlay()};
+$('overlayForward').onclick=()=>{overlaySeconds+=2;updateOverlay()};
+$('overlayReset').onclick=()=>{overlaySeconds=0;overlayLast=0;updateOverlay()};
+$('embedCinema').onclick=()=>{
+ const active=$('embeddedWrapper').classList.toggle('embed-cinema');
+ $('embedCinema').textContent=active?'Sinema Modundan Çık':'Gömülü Sinema Modu';
+ logEvent('Gomulu sinema',active?'acildi':'kapandi');updateOverlay();
+};
+const originalSrtChange=$('srt').onchange;
+$('srt').onchange=async e=>{await originalSrtChange(e);overlayPause();overlaySeconds=0;updateOverlay();logEvent('Gomulu altyazi dosyasi',String(cues.length)+' satir')};
+const originalShow=$('show').onclick;
+$('show').onclick=()=>{originalShow();updateOverlay()};
+const originalSample=$('sample').onclick;
+$('sample').onclick=()=>{originalSample();updateOverlay()};
+const originalEmbed=$('embedPage').onclick;
+$('embedPage').onclick=()=>{originalEmbed();overlayPause();overlaySeconds=0;updateOverlay()};
+updateOverlay();
+
+$('quickToggle').onclick=()=>{if(overlayRunning){overlayPause()}else{$('overlayStart').click()}$('quickToggle').textContent=overlayRunning?'⏸ Altyazı':'▶ Altyazı'};
+$('quickBack').onclick=()=>{$('overlayBack').click()};
+$('quickForward').onclick=()=>{$('overlayForward').click()};

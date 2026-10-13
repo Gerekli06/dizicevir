@@ -1,1 +1,6 @@
-DiziCevir universal v3. HTTPS MP4/HLS, DASH uyarisi, AMP ve sayfa ayrimi, CORS izinli HTML kaynak kesfi, iframe onizleme, Sinema Modu, altyazi, ses testi ve tanilama. Tum sitelerin videolarini acamaz; DRM/CORS/iframe kisitlarini asmaz.
+DiziCevir V4 - Gomulu video ve altyazi
+
+Kurulum: Bu klasordeki 6 dosyayi GitHub deposunun kokune kopyalayip commit/push yapin.
+
+V4: iframe sinema modu, iframe ustu SRT/VTT altyazi, baslat/duraklat, +/-2 saniye ayari.
+Sinir: iframe icindeki ses ve video zamani okunamaz; otomatik ceviri garanti edilmez.

@@ -1,4 +1,4 @@
-const CACHE='dizicevir-universal-v3';const ASSETS=['./','./index.html','./app.js','./manifest.webmanifest','./icon.png'];
+const CACHE='dizicevir-iframe-v4';const ASSETS=['./','./index.html','./app.js','./manifest.webmanifest','./icon.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('dizicevir-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{const r=e.request,u=new URL(r.url);if(r.method!=='GET'||u.origin!==location.origin||!u.pathname.startsWith('/dizicevir/'))return;if(r.mode==='navigate'||/\.(html|js)$/.test(u.pathname)){e.respondWith(fetch(r).then(res=>{if(res.ok){const copy=res.clone();e.waitUntil(caches.open(CACHE).then(c=>c.put(r,copy)))}return res}).catch(()=>caches.match(r)));return}e.respondWith(caches.match(r).then(c=>c||fetch(r)))});
