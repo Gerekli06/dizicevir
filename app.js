@@ -145,21 +145,44 @@ $('audioTest').onclick=async()=>{
  }catch(err){$('audioResult').textContent+='\nGerçek ses ölçümü başarısız: '+err.name+' '+err.message;logEvent('Ses olcumu hatasi',err.name+': '+err.message);await stopMeter();}
 };
 let recognition=null,shouldListen=false,translator=null;
+let translateSerial=0;
 async function translateEnglish(text){
+ const serial=++translateSerial;
+ $('turkishText').textContent='Çevriliyor…';
+ let translated='';
+ // Önce cihazda varsa tarayıcı çevirisi: metin harici servise gönderilmez.
  const T=window.Translator;
- if(!T){$('turkishText').textContent='Bu Safari sürümünde yerleşik Translator API yok; otomatik çeviri yapılamıyor.';logEvent('Ceviri destegi yok','Translator API');return;}
- try{
-  if(!translator){
-   if(typeof T.availability==='function'){
-    const a=await T.availability({sourceLanguage:'en',targetLanguage:'tr'});
-    if(a==='unavailable'){throw new Error('İngilizce-Türkçe çeviri paketi desteklenmiyor');}
+ if(T){
+  try{
+   if(!translator){
+    if(typeof T.availability==='function'){
+     const available=await T.availability({sourceLanguage:'en',targetLanguage:'tr'});
+     if(available==='unavailable')throw Error('Dil paketi yok');
+    }
+    translator=await T.create({sourceLanguage:'en',targetLanguage:'tr'});
    }
-   translator=await T.create({sourceLanguage:'en',targetLanguage:'tr'});
-  }
-  $('turkishText').textContent=await translator.translate(text);
-  subtitle.textContent=$('turkishText').textContent;manual=true;
-  logEvent('Ceviri tamamlandi');
- }catch(err){$('turkishText').textContent='Çeviri kullanılamıyor: '+err.message;logEvent('Ceviri hatasi',err.message);}
+   translated=await translator.translate(text);
+   logEvent('Yerlesik ceviri tamamlandi');
+  }catch(err){logEvent('Yerlesik ceviri kullanilamadi',err.message)}
+ }
+ if(!translated){
+  if(!$('onlineConsent').checked){$('turkishText').textContent='Yerleşik çeviri yok. Harici servis izni verirsen çevirmeyi deneyebiliriz.';return}
+  try{
+   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),10000);
+   let response;
+   try{response=await fetch('https://api.mymemory.translated.net/get?'+new URLSearchParams({q:text.slice(0,450),langpair:'en|tr'}),{signal:controller.signal,mode:'cors',credentials:'omit'})}finally{clearTimeout(timer)}
+   if(!response.ok)throw Error('HTTP '+response.status);
+   const data=await response.json();
+   if(data.responseStatus!==200||!data.responseData?.translatedText)throw Error('Servis çeviri döndürmedi');
+   translated=data.responseData.translatedText;
+   logEvent('Harici metin cevirisi tamamlandi');
+  }catch(err){if(serial===translateSerial)$('turkishText').textContent='Çeviri alınamadı: '+err.message;logEvent('Harici ceviri hatasi',err.message);return}
+ }
+ if(serial!==translateSerial)return;
+ $('turkishText').textContent=translated;
+ subtitle.textContent=translated;manual=true;
+ // V4'ün gömülü video üzerindeki katmanını da güncelle.
+ embedOverlay.textContent=translated;
 }
 $('startSpeech').onclick=()=>{
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;

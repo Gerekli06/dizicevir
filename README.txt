@@ -1,6 +1,5 @@
-DiziCevir V4 - Gomulu video ve altyazi
+DiziCevir V5 - deneysel mikrofonla Ingilizce konusma tanima ve Turkce ceviri.
 
-Kurulum: Bu klasordeki 6 dosyayi GitHub deposunun kokune kopyalayip commit/push yapin.
+V4 iframe oynatici ve sinema modu korunur. Safari SpeechRecognition mikrofonu dinler. Yerlesik Translator API varsa kullanilir; yoksa kullanici acik onay verirse yalnizca taninan Ingilizce metin MyMemory servisine gonderilir. Ses yuklenmez. Kota, baglanti, CORS, mikrofonun hoparloru duymamasi ve Safari hatalari nedeniyle calisma garantisi yoktur. Bu yontem iframe sesini dogrudan yakalamaz.
 
-V4: iframe sinema modu, iframe ustu SRT/VTT altyazi, baslat/duraklat, +/-2 saniye ayari.
-Sinir: iframe icindeki ses ve video zamani okunamaz; otomatik ceviri garanti edilmez.
+Kurulum: Bu 6 dosyayi mevcut dizicevir repo kokune kopyalayin; git add . ; git commit -m "DiziCevir V5 mikrofon ceviri" ; git push origin main
