@@ -1,1 +1,1 @@
-DiziCevir - Oynatici v2\n\nMP4 ve iPhone Safari HLS (.m3u8) destegi, URL turu denetimi, sinema modu, hata kaydi.\nDizi sayfalarini otomatik video kaynagina donusturmez. Ses yakalama/ceviri garanti edilmez.\n\nKurulum: 6 dosyayi mevcut dizicevir klasorune kopyala; git add .; git commit -m "Oynatici kaynak destegi"; git push origin main\n
+DiziCevir universal v3. HTTPS MP4/HLS, DASH uyarisi, AMP ve sayfa ayrimi, CORS izinli HTML kaynak kesfi, iframe onizleme, Sinema Modu, altyazi, ses testi ve tanilama. Tum sitelerin videolarini acamaz; DRM/CORS/iframe kisitlarini asmaz.
